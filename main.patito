@@ -1,0 +1,24 @@
+programa miPrograma;
+vars
+    x, y : entero;
+    z : flotante;
+
+nula miFuncion(c: entero, a: entero) {
+        c = a + 10;
+        escribe("El valor de c es: ", c);
+};
+inicio{
+    x = 10;
+    y = 20;
+    z = x + y * 1.5;
+    si (x > y) {
+        escribe("x es mayor que y");
+    } sino {
+        escribe("y es mayor o igual que x");
+    };
+    mientras (x < 50) haz {
+        x = x + 5;
+        escribe("x ahora es: ", x);
+    };
+    miFuncion(x, z);
+}fin
