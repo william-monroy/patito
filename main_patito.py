@@ -2,27 +2,7 @@ import sys
 from antlr4 import *
 from PatitoLexer import PatitoLexer
 from PatitoParser import PatitoParser
-from PatitoVisitor import PatitoVisitor  # Asegúrate de que esto esté presente
 
-class EvalVisitor(PatitoVisitor):
-    """
-    Visitor personalizado para el análisis semántico y la interpretación del código.
-    """
-    def visitPrograma(self, ctx):
-        return [self.visit(s) for s in ctx.cuerpo()]
-
-    def visitAsigna(self, ctx):
-        # Implementar la lógica para la asignación.
-        variable = ctx.ID().getText()
-        value = self.visit(ctx.expresion())
-        print(f"Asigna: {variable} = {value}")
-        return value
-
-    def visitImprime(self, ctx):
-        if ctx.param_imp():
-            print(ctx.param_imp().getText())
-
-    # Añadir más métodos visit para los diferentes tipos de nodos según la gramática
 
 def main():
     """
@@ -56,17 +36,10 @@ def main():
         if parser.getNumberOfSyntaxErrors() > 0:
             print("Error: Se encontraron errores de sintaxis en el archivo.")
             sys.exit(1)
+        else:
+            print("Análisis léxico y sintáctico completado sin errores.")
     except Exception as e:
         print(f"Error durante el análisis léxico/sintáctico: {e}")
-        sys.exit(1)
-
-    # Evaluación del árbol sintáctico
-    try:
-        visitor = EvalVisitor()
-        resultado = visitor.visit(tree)
-        print("Resultado:", resultado)
-    except Exception as e:
-        print(f"Error durante la evaluación del árbol sintáctico: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":
