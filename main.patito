@@ -2,10 +2,16 @@ programa miPrograma;
 vars
     x, y : entero;
     z : flotante;
+    holi: entero;
 
 nula miFuncion(c: entero, a: entero) {
+    vars
+        pi: flotante;
+    {
+        pi = 3.14;
         c = a + 10;
         escribe("El valor de c es: ", c);
+    }
 };
 inicio{
     x = 10;
@@ -17,6 +23,7 @@ inicio{
         escribe("y es mayor o igual que x");
     };
     mientras (x < 50) haz {
+        holi = 3;
         x = x + 5;
         escribe("x ahora es: ", x);
     };

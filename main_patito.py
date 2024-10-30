@@ -43,23 +43,49 @@ def main():
             walker = ParseTreeWalker()
             walker.walk(listener, tree)
             # Verificar si hay errores semánticos
+
             if listener.errores:
                 for error in listener.errores:
                     print(error)
                 sys.exit(1)
             else:
-                print("Análisis semántico completado sin errores.")
-                # Imprimir el directorio de funciones y tablas de variables
-                print("Directorio de Funciones:")
+                print("Análisis semántico completado sin errores.\n")
+
+                # Imprimir el directorio de funciones
+                print("==== Directorio de Funciones ====\n")
                 for func_name, func_info in listener.directorio_funciones.items():
-                    print(f"Función '{func_name}': {func_info}")
-                print("\nTablas de Variables:")
+                    print(f"Función '{func_name}':")
+                    print(f"  Tipo de Retorno: {func_info['tipo_retorno']}")
+                    if func_info['parametros']:
+                        print(f"  Parámetros:")
+                        for param in func_info['parametros']:
+                            print(f"    - {param['nombre']}: {param['tipo']}")
+                    else:
+                        print(f"  Parámetros: Ninguno")
+                    print(f"  Tabla de Variables:")
+                    for var_name, var_info in func_info['tabla_variables'].items():
+                        print(f"    - {var_name}: {var_info}")
+                    print(f"  Cuádruplo de Inicio: {func_info['cuadruplos_inicio']}\n")
+
+                # Imprimir las tablas de variables
+                print("==== Tablas de Variables ====\n")
                 print("Global:")
-                print(listener.tabla_variables_global)
+                for var_name, var_info in listener.tabla_variables_global.items():
+                    print(f"  - {var_name}: {var_info}")
                 for func_name, func_info in listener.directorio_funciones.items():
                     if func_name != 'global':
-                        print(f"{func_name}:")
-                        print(func_info['tabla_variables'])
+                        print(f"\n{func_name}:")
+                        for var_name, var_info in func_info['tabla_variables'].items():
+                            print(f"  - {var_name}: {var_info}")
+
+                # Imprimir los cuádruplos
+                print("\n==== Cuádruplos Generados ====\n")
+                for idx, cuadruplo in enumerate(listener.cuadruplos):
+                    operador, operando1, operando2, resultado = cuadruplo
+                    print(f"{idx}: ({operador}, {operando1}, {operando2}, {resultado})")
+
+
+
     except Exception as e:
         print(f"Error durante el análisis léxico/sintáctico: {e}")
         sys.exit(1)
