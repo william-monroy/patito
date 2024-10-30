@@ -8,7 +8,6 @@ f: funcs*;
 
 cuerpo: '{' (e*)? '}' | e*;
 e: estatuto;
-//cuerpo: '{' (estatuto*)? '}';
 
 asigna: ID '=' expresion END_STM;
 
