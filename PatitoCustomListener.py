@@ -285,11 +285,11 @@ class PatitoCustomListener(PatitoListener):
                 print(f"Agregando a pila_saltos en ciclo: {self.pila_saltos}")
 
         # Debugging statements
-        print(f"Current pila_operandos: {self.pila_operandos}")
-        print(f"Current pila_tipos: {self.pila_tipos}")
-        print(f"Current pila_operadores: {self.pila_operadores}")
-        print(f"Current pila_saltos: {self.pila_saltos}")
-        print(f"Current cuadruplos: {self.cuadruplos}")
+        # print(f"Current pila_operandos: {self.pila_operandos}")
+        # print(f"Current pila_tipos: {self.pila_tipos}")
+        # print(f"Current pila_operadores: {self.pila_operadores}")
+        # print(f"Current pila_saltos: {self.pila_saltos}")
+        # print(f"Current cuadruplos: {self.cuadruplos}")
 
     def exitAsigna(self, ctx: PatitoParser.AsignaContext):
         variable = ctx.ID().getText()
