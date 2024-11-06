@@ -21,6 +21,12 @@ class PatitoCustomListener(PatitoListener):
         self.contador_temporales = 0
         # Lista para almacenar los cuádruplos
         self.cuadruplos = []
+        # Pila para manejar saltos
+        self.pila_saltos = []
+        self.in_condition = False
+        # Listas para manejar parámetros en impresión y llamadas
+        self.lista_param_impresion = []
+        self.pila_parametros = []
 
     # Entrar a la regla de programa
     def enterPrograma(self, ctx: PatitoParser.ProgramaContext):
@@ -31,6 +37,11 @@ class PatitoCustomListener(PatitoListener):
             'tabla_variables': self.tabla_variables_global,
             'cuadruplos_inicio': None  # Se asignará durante la generación de código
         }
+
+    def exitPrograma(self, ctx: PatitoParser.ProgramaContext):
+        # Agregar el cuádruplo END al final del programa
+        cuadruplo = ('END', None, None, None)
+        self.cuadruplos.append(cuadruplo)
 
     # Entrar a la declaración de variables
     def enterD(self, ctx: PatitoParser.DContext):
@@ -86,7 +97,7 @@ class PatitoCustomListener(PatitoListener):
                 'tipo_retorno': tipo_retorno,
                 'parametros': parametros,
                 'tabla_variables': self.tabla_variables_actual,
-                'cuadruplos_inicio': None  # Se asignará durante la generación de código
+                'cuadruplos_inicio': len(self.cuadruplos)  # Cuádruplo de inicio de la función
             }
             # Actualizar el scope actual
             self.pila_scopes.append(nombre_funcion)
@@ -101,6 +112,9 @@ class PatitoCustomListener(PatitoListener):
             self.tabla_variables_actual = self.tabla_variables_global
         else:
             self.tabla_variables_actual = self.directorio_funciones[self.funcion_actual]['tabla_variables']
+        # Agregar un cuádruplo de retorno al final de la función
+        cuadruplo = ('ENDFUNC', None, None, None)
+        self.cuadruplos.append(cuadruplo)
 
     # Entrar a una asignación
     def enterAsigna(self, ctx: PatitoParser.AsignaContext):
@@ -117,6 +131,35 @@ class PatitoCustomListener(PatitoListener):
         # Verificar si la función está declarada
         if nombre_funcion not in self.directorio_funciones:
             self.errores.append(f"Error: Función '{nombre_funcion}' no declarada.")
+        else:
+            self.pila_parametros = []
+
+    def exitLlamada(self, ctx: PatitoParser.LlamadaContext):
+        nombre_funcion = ctx.ID().getText()
+        funcion_info = self.directorio_funciones[nombre_funcion]
+        num_params = len(funcion_info['parametros'])
+        if len(self.pila_parametros) != num_params:
+            self.errores.append(f"Error: Número incorrecto de parámetros al llamar a '{nombre_funcion}'.")
+        else:
+            # Verificar tipos de parámetros y generar cuádruplos
+            for i, (param, tipo_param) in enumerate(self.pila_parametros):
+                expected_tipo = funcion_info['parametros'][i]['tipo']
+                if tipo_param != expected_tipo:
+                    self.errores.append(
+                        f"Error: Tipo incorrecto para el parámetro {i + 1} al llamar a '{nombre_funcion}'. Se esperaba '{expected_tipo}' pero se obtuvo '{tipo_param}'.")
+                cuadruplo = ('PARAM', param, None, f'param{i}')
+                self.cuadruplos.append(cuadruplo)
+            # Generar cuádruplo de llamada
+            cuadruplo = ('GOSUB', nombre_funcion, None, funcion_info['cuadruplos_inicio'])
+            self.cuadruplos.append(cuadruplo)
+
+    def exitE_l(self, ctx: PatitoParser.E_lContext):
+        expresiones = ctx.expresion()
+        if expresiones:
+            for _ in expresiones:
+                resultado = self.pila_operandos.pop()
+                tipo = self.pila_tipos.pop()
+                self.pila_parametros.insert(0, (resultado, tipo))
 
     # Entrar a una variable usada (por ejemplo, en expresiones)
     def enterFactor(self, ctx: PatitoParser.FactorContext):
@@ -200,6 +243,7 @@ class PatitoCustomListener(PatitoListener):
                     f"Error semántico: Operación inválida entre '{tipo_izquierda}' y '{tipo_derecha}' con operador '{operador}'.")
 
     def exitExpresion(self, ctx: PatitoParser.ExpresionContext):
+        # Manejar expresiones relacionales
         if ctx.bo():
             operador = self.pila_operadores.pop()
             derecha = self.pila_operandos.pop()
@@ -218,6 +262,35 @@ class PatitoCustomListener(PatitoListener):
                 self.errores.append(
                     f"Error semántico: Operación inválida entre '{tipo_izquierda}' y '{tipo_derecha}' con operador '{operador}'.")
 
+        # Verificar si la expresión es parte de una condición o ciclo
+        if self.es_expresion_de_condicion(ctx):
+            resultado = self.pila_operandos.pop()
+            tipo_resultado = self.pila_tipos.pop()
+            if tipo_resultado != 'booleano':
+                self.errores.append("Error: La expresión en la condición debe ser booleana.")
+            else:
+                cuadruplo = ('GOTOF', resultado, None, None)
+                self.cuadruplos.append(cuadruplo)
+                self.pila_saltos.append(len(self.cuadruplos) - 1)
+                print(f"Agregando a pila_saltos en condición: {self.pila_saltos}")
+        elif self.es_expresion_de_ciclo(ctx):
+            resultado = self.pila_operandos.pop()
+            tipo_resultado = self.pila_tipos.pop()
+            if tipo_resultado != 'booleano':
+                self.errores.append("Error: La expresión en el ciclo debe ser booleana.")
+            else:
+                cuadruplo = ('GOTOF', resultado, None, None)
+                self.cuadruplos.append(cuadruplo)
+                self.pila_saltos.append(len(self.cuadruplos) - 1)
+                print(f"Agregando a pila_saltos en ciclo: {self.pila_saltos}")
+
+        # Debugging statements
+        print(f"Current pila_operandos: {self.pila_operandos}")
+        print(f"Current pila_tipos: {self.pila_tipos}")
+        print(f"Current pila_operadores: {self.pila_operadores}")
+        print(f"Current pila_saltos: {self.pila_saltos}")
+        print(f"Current cuadruplos: {self.cuadruplos}")
+
     def exitAsigna(self, ctx: PatitoParser.AsignaContext):
         variable = ctx.ID().getText()
         valor = self.pila_operandos.pop()
@@ -234,6 +307,66 @@ class PatitoCustomListener(PatitoListener):
                     f"Error semántico: No se puede asignar un valor de tipo '{tipo_valor}' a la variable '{variable}' de tipo '{tipo_variable}'.")
         else:
             self.errores.append(f"Error: Variable '{variable}' no declarada.")
+
+    # Métodos para manejar condicionales
+    def enterCondicion(self, ctx: PatitoParser.CondicionContext):
+        print("Entering a condition")
+
+    def exitCondicion(self, ctx: PatitoParser.CondicionContext):
+        print(f"pila_saltos antes de hacer pop en exitCondicion: {self.pila_saltos}")
+        if not self.pila_saltos:
+            self.errores.append("Error: pila_saltos is empty before popping in exitCondicion.")
+            return
+        end = self.pila_saltos.pop()
+        self.cuadruplos[end] = (self.cuadruplos[end][0], self.cuadruplos[end][1], None, len(self.cuadruplos))
+
+    def enterE_c(self, ctx: PatitoParser.E_cContext):
+        # Generar el cuádruplo GOTO
+        cuadruplo = ('GOTO', None, None, None)
+        self.cuadruplos.append(cuadruplo)
+        goto_index = len(self.cuadruplos) - 1
+        self.pila_saltos.append(goto_index)
+
+        # Ajustar el GOTOF previo para que apunte al inicio del bloque 'sino'
+        falso = self.pila_saltos.pop(-2)
+        self.cuadruplos[falso] = (self.cuadruplos[falso][0], self.cuadruplos[falso][1], None, len(self.cuadruplos))
+
+    def exitE_c(self, ctx: PatitoParser.E_cContext):
+        # No es necesario hacer nada aquí
+        pass
+
+    # Métodos para manejar ciclos
+    def enterCiclo(self, ctx: PatitoParser.CicloContext):
+        self.pila_saltos.append(len(self.cuadruplos))
+
+    def exitCiclo(self, ctx: PatitoParser.CicloContext):
+        falso = self.pila_saltos.pop()
+        retorno = self.pila_saltos.pop()
+        cuadruplo = ('GOTO', None, None, retorno)
+        self.cuadruplos.append(cuadruplo)
+        self.cuadruplos[falso] = (self.cuadruplos[falso][0], self.cuadruplos[falso][1], None, len(self.cuadruplos))
+
+    # Métodos para manejar impresión
+    def enterImprime(self, ctx: PatitoParser.ImprimeContext):
+        self.lista_param_impresion = []
+
+    def exitImprime(self, ctx: PatitoParser.ImprimeContext):
+        # Generar cuádruplos PRINT en orden
+        for parametro in self.lista_param_impresion:
+            cuadruplo = ('PRINT', parametro, None, None)
+            self.cuadruplos.append(cuadruplo)
+        # Limpiar la lista
+        self.lista_param_impresion = []
+
+    def exitParam_imp(self, ctx: PatitoParser.Param_impContext):
+        if ctx.expresion():
+            resultado = self.pila_operandos.pop()
+            self.pila_tipos.pop()
+            self.lista_param_impresion.insert(0, resultado)  # Insertar al inicio para mantener el orden
+        elif ctx.LETRERO():
+            cadena = ctx.LETRERO().getText()
+            self.lista_param_impresion.insert(0, cadena)
+        # No es necesario manejar recursión aquí
 
     def obtener_tipo_variable(self, nombre_var):
         if nombre_var in self.tabla_variables_actual:
@@ -271,3 +404,18 @@ class PatitoCustomListener(PatitoListener):
                     cubo[tipo1][operador][tipo2] = resultado
         return cubo
 
+    def es_expresion_de_condicion(self, ctx):
+        parent_ctx = ctx.parentCtx
+        while parent_ctx:
+            if isinstance(parent_ctx, PatitoParser.CondicionContext) and ctx == parent_ctx.expresion():
+                return True
+            parent_ctx = parent_ctx.parentCtx
+        return False
+
+    def es_expresion_de_ciclo(self, ctx):
+        parent_ctx = ctx.parentCtx
+        while parent_ctx:
+            if isinstance(parent_ctx, PatitoParser.CicloContext) and ctx == parent_ctx.expresion():
+                return True
+            parent_ctx = parent_ctx.parentCtx
+        return False

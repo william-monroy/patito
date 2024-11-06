@@ -3,7 +3,7 @@ from antlr4 import *
 from PatitoLexer import PatitoLexer
 from PatitoParser import PatitoParser
 from PatitoCustomListener import PatitoCustomListener  # Importamos el Listener personalizado
-
+import traceback
 
 def main():
     """
@@ -88,6 +88,7 @@ def main():
 
     except Exception as e:
         print(f"Error durante el análisis léxico/sintáctico: {e}")
+        traceback.print_exc()
         sys.exit(1)
 
 

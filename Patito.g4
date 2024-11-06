@@ -12,7 +12,7 @@ e: estatuto;
 asigna: ID '=' expresion END_STM;
 
 expresion: exp (bo exp)?;
-bo: '>' | '<' | '!=' | '==';
+bo: OP_MAYOR | OP_MENOR | OP_MAYOR_IGUAL | OP_MENOR_IGUAL | OP_DIFERENTE | OP_IGUAL_IGUAL;
 
 cte: NUMERO | 'cte_ent' | 'cte_float';
 
@@ -61,8 +61,13 @@ OP_SUMA: '+' ;
 OP_RESTA: '-' ;
 OP_MUL: '*' ;
 OP_DIV: '/' ;
-END_STM: ';';
+OP_MAYOR: '>' ;
+OP_MENOR: '<' ;
+OP_MAYOR_IGUAL: '>=' ;
+OP_MENOR_IGUAL: '<=' ;
+OP_IGUAL_IGUAL: '==' ;
+OP_DIFERENTE: '!=' ;
+END_STM: ';' ;
 LETRERO : '"' ~["\r\n]* '"' ;
-
 NUMERO: [0-9]+ ('.' [0-9]+)?;
 WS: [ \t\r\n]+ -> skip ;

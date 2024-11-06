@@ -27,5 +27,5 @@ inicio{
         x = x + 5;
         escribe("x ahora es: ", x);
     };
-    miFuncion(x, z);
+    miFuncion(x, y);
 }fin
