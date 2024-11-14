@@ -64,25 +64,41 @@ def main():
                         print(f"  Parámetros: Ninguno")
                     print(f"  Tabla de Variables:")
                     for var_name, var_info in func_info['tabla_variables'].items():
-                        print(f"    - {var_name}: {var_info}")
+                        print(f"    - {var_name}: Tipo: {var_info['tipo']}, Dirección: {var_info['direccion']}")
                     print(f"  Cuádruplo de Inicio: {func_info['cuadruplos_inicio']}\n")
 
                 # Imprimir las tablas de variables
                 print("==== Tablas de Variables ====\n")
                 print("Global:")
                 for var_name, var_info in listener.tabla_variables_global.items():
-                    print(f"  - {var_name}: {var_info}")
+                    print(f"  - {var_name}: Tipo: {var_info['tipo']}, Dirección: {var_info['direccion']}")
                 for func_name, func_info in listener.directorio_funciones.items():
                     if func_name != 'global':
                         print(f"\n{func_name}:")
                         for var_name, var_info in func_info['tabla_variables'].items():
-                            print(f"  - {var_name}: {var_info}")
+                            print(f"  - {var_name}: Tipo: {var_info['tipo']}, Dirección: {var_info['direccion']}")
+
+                # Imprimir la tabla de constantes
+                print("\n==== Tabla de Constantes ====\n")
+                for const_value, const_info in listener.constant_table.items():
+                    print(f"  - {const_value}: Tipo: {const_info['tipo']}, Dirección: {const_info['direccion']}")
 
                 # Imprimir los cuádruplos
                 print("\n==== Cuádruplos Generados ====\n")
                 for idx, cuadruplo in enumerate(listener.cuadruplos):
                     operador, operando1, operando2, resultado = cuadruplo
                     print(f"{idx}: ({operador}, {operando1}, {operando2}, {resultado})")
+
+                # Escribir los cuádruplos en un archivo
+                with open('output.txt', 'w') as f:
+                    for idx, cuadruplo in enumerate(listener.cuadruplos):
+                        operador, operando1, operando2, resultado = cuadruplo
+                        f.write(f"{operador},{operando1},{operando2},{resultado}\n")
+
+                # Escribir la tabla de constantes en un archivo
+                with open('constants.txt', 'w') as f:
+                    for const_value, const_info in listener.constant_table.items():
+                        f.write(f"{const_info['direccion']},{const_value},{const_info['tipo']}\n")
 
 
 

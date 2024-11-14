@@ -5,9 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3526c6b3-d007-4b23-827e-401542c4849b" name="Changes" comment="fix: Fixed general quadruple's and added for conditionals, while, and functions">
-      <change afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/testing/test.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Patito.g4" beforeDir="false" afterPath="$PROJECT_DIR$/Patito.g4" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/PatitoCustomListener.py" beforeDir="false" afterPath="$PROJECT_DIR$/PatitoCustomListener.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.patito" beforeDir="false" afterPath="$PROJECT_DIR$/main.patito" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main_patito.py" beforeDir="false" afterPath="$PROJECT_DIR$/main_patito.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -62,6 +65,11 @@
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/testing" />
+    </key>
+  </component>
   <component name="RunManager">
     <configuration name="main_patito" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="patito" />
@@ -167,6 +175,6 @@
     <option name="LAST_COMMIT_MESSAGE" value="fix: Fixed general quadruple's and added for conditionals, while, and functions" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/patito$main_patito.coverage" NAME="main_patito Coverage Results" MODIFIED="1730758429082" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/patito$main_patito.coverage" NAME="main_patito Coverage Results" MODIFIED="1731453357994" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>

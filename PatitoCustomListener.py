@@ -1,5 +1,6 @@
 from PatitoListener import PatitoListener
 from PatitoParser import PatitoParser
+from VirtualMemory import VirtualMemory
 
 class PatitoCustomListener(PatitoListener):
     def __init__(self):
@@ -9,6 +10,10 @@ class PatitoCustomListener(PatitoListener):
         self.tabla_variables_actual = self.tabla_variables_global
         self.funcion_actual = 'global'
         self.errores = []
+        # Crear instancia de VirtualMemory
+        self.virtual_memory = VirtualMemory()
+        # Tabla de constantes
+        self.constant_table = {}
         # Pila para manejar scopes
         self.pila_scopes = ['global']
         # Inicializar el cubo semántico
@@ -51,13 +56,17 @@ class PatitoCustomListener(PatitoListener):
 
         for var in variables:
             nombre_var = var.getText()
-            # Verificar si la variable ya ha sido declarada en el scope actual
             if nombre_var in self.tabla_variables_actual:
                 self.errores.append(
                     f"Error: Variable '{nombre_var}' ya declarada en el alcance '{scope_actual}'.")
             else:
-                # Agregar la variable a la tabla de variables actual
-                self.tabla_variables_actual[nombre_var] = {'tipo': tipo}
+                # Asignar dirección virtual
+                if scope_actual == 'global':
+                    address = self.virtual_memory.get_address('global', tipo)
+                else:
+                    address = self.virtual_memory.get_address('local', tipo)
+                # Agregar la variable a la tabla de variables actual con su dirección
+                self.tabla_variables_actual[nombre_var] = {'tipo': tipo, 'direccion': address}
 
     # Entrar a la declaración de una función
     def enterFuncs(self, ctx: PatitoParser.FuncsContext):
@@ -90,7 +99,9 @@ class PatitoCustomListener(PatitoListener):
                     self.errores.append(
                         f"Error: Parámetro '{nombre_param}' duplicado en función '{nombre_funcion}'.")
                 else:
-                    self.tabla_variables_actual[nombre_param] = {'tipo': tipo_param}
+                    # Asignar dirección virtual al parámetro
+                    address = self.virtual_memory.get_address('local', tipo_param)
+                    self.tabla_variables_actual[nombre_param] = {'tipo': tipo_param, 'direccion': address}
 
             # Agregar la función al directorio de funciones
             self.directorio_funciones[nombre_funcion] = {
@@ -115,6 +126,8 @@ class PatitoCustomListener(PatitoListener):
         # Agregar un cuádruplo de retorno al final de la función
         cuadruplo = ('ENDFUNC', None, None, None)
         self.cuadruplos.append(cuadruplo)
+        # Reiniciar la memoria local
+        self.virtual_memory.reset_local_memory()
 
     # Entrar a una asignación
     def enterAsigna(self, ctx: PatitoParser.AsignaContext):
@@ -178,13 +191,14 @@ class PatitoCustomListener(PatitoListener):
                 tipo = 'flotante'
             else:
                 tipo = 'entero'
-            self.pila_operandos.append(valor)
+            address = self.get_constant_address(valor, tipo)
+            self.pila_operandos.append(address)
             self.pila_tipos.append(tipo)
         elif ctx.ID():
             nombre_var = ctx.ID().getText()
-            tipo = self.obtener_tipo_variable(nombre_var)
+            tipo, address = self.obtener_tipo_direccion_variable(nombre_var)
             if tipo:
-                self.pila_operandos.append(nombre_var)
+                self.pila_operandos.append(address)
                 self.pila_tipos.append(tipo)
             else:
                 self.errores.append(f"Error: Variable '{nombre_var}' no declarada.")
@@ -213,11 +227,11 @@ class PatitoCustomListener(PatitoListener):
             tipo_izquierda = self.pila_tipos.pop()
             resultado_tipo = self.cubo_semantico[tipo_izquierda][operador][tipo_derecha]
             if resultado_tipo:
-                temporal = f"t{self.contador_temporales}"
-                self.contador_temporales += 1
-                self.pila_operandos.append(temporal)
+                # Asignar dirección virtual al temporal
+                temporal_address = self.virtual_memory.get_address('temporal', resultado_tipo)
+                self.pila_operandos.append(temporal_address)
                 self.pila_tipos.append(resultado_tipo)
-                cuadruplo = (operador, izquierda, derecha, temporal)
+                cuadruplo = (operador, izquierda, derecha, temporal_address)
                 self.cuadruplos.append(cuadruplo)
             else:
                 self.errores.append(
@@ -232,16 +246,17 @@ class PatitoCustomListener(PatitoListener):
             tipo_izquierda = self.pila_tipos.pop()
             resultado_tipo = self.cubo_semantico[tipo_izquierda][operador][tipo_derecha]
             if resultado_tipo:
-                temporal = f"t{self.contador_temporales}"
-                self.contador_temporales += 1
-                self.pila_operandos.append(temporal)
+                # Asignar dirección virtual al temporal
+                temporal_address = self.virtual_memory.get_address('temporal', resultado_tipo)
+                self.pila_operandos.append(temporal_address)
                 self.pila_tipos.append(resultado_tipo)
-                cuadruplo = (operador, izquierda, derecha, temporal)
+                cuadruplo = (operador, izquierda, derecha, temporal_address)
                 self.cuadruplos.append(cuadruplo)
             else:
                 self.errores.append(
                     f"Error semántico: Operación inválida entre '{tipo_izquierda}' y '{tipo_derecha}' con operador '{operador}'.")
 
+    # Métodos para manejar condicionales
     def exitExpresion(self, ctx: PatitoParser.ExpresionContext):
         # Manejar expresiones relacionales
         if ctx.bo():
@@ -252,11 +267,11 @@ class PatitoCustomListener(PatitoListener):
             tipo_izquierda = self.pila_tipos.pop()
             resultado_tipo = self.cubo_semantico[tipo_izquierda][operador][tipo_derecha]
             if resultado_tipo:
-                temporal = f"t{self.contador_temporales}"
-                self.contador_temporales += 1
-                self.pila_operandos.append(temporal)
+                # Asignar dirección virtual al temporal
+                temporal_address = self.virtual_memory.get_address('temporal', resultado_tipo)
+                self.pila_operandos.append(temporal_address)
                 self.pila_tipos.append(resultado_tipo)
-                cuadruplo = (operador, izquierda, derecha, temporal)
+                cuadruplo = (operador, izquierda, derecha, temporal_address)
                 self.cuadruplos.append(cuadruplo)
             else:
                 self.errores.append(
@@ -272,7 +287,6 @@ class PatitoCustomListener(PatitoListener):
                 cuadruplo = ('GOTOF', resultado, None, None)
                 self.cuadruplos.append(cuadruplo)
                 self.pila_saltos.append(len(self.cuadruplos) - 1)
-                print(f"Agregando a pila_saltos en condición: {self.pila_saltos}")
         elif self.es_expresion_de_ciclo(ctx):
             resultado = self.pila_operandos.pop()
             tipo_resultado = self.pila_tipos.pop()
@@ -282,7 +296,6 @@ class PatitoCustomListener(PatitoListener):
                 cuadruplo = ('GOTOF', resultado, None, None)
                 self.cuadruplos.append(cuadruplo)
                 self.pila_saltos.append(len(self.cuadruplos) - 1)
-                print(f"Agregando a pila_saltos en ciclo: {self.pila_saltos}")
 
         # Debugging statements
         # print(f"Current pila_operandos: {self.pila_operandos}")
@@ -295,12 +308,12 @@ class PatitoCustomListener(PatitoListener):
         variable = ctx.ID().getText()
         valor = self.pila_operandos.pop()
         tipo_valor = self.pila_tipos.pop()
-        tipo_variable = self.obtener_tipo_variable(variable)
+        tipo_variable, address_variable = self.obtener_tipo_direccion_variable(variable)
         if tipo_variable:
             # Verificar compatibilidad de tipos
             resultado_tipo = self.cubo_semantico[tipo_variable]['='][tipo_valor]
             if resultado_tipo:
-                cuadruplo = ('=', valor, None, variable)
+                cuadruplo = ('=', valor, None, address_variable)
                 self.cuadruplos.append(cuadruplo)
             else:
                 self.errores.append(
@@ -313,23 +326,24 @@ class PatitoCustomListener(PatitoListener):
         print("Entering a condition")
 
     def exitCondicion(self, ctx: PatitoParser.CondicionContext):
-        print(f"pila_saltos antes de hacer pop en exitCondicion: {self.pila_saltos}")
-        if not self.pila_saltos:
-            self.errores.append("Error: pila_saltos is empty before popping in exitCondicion.")
-            return
-        end = self.pila_saltos.pop()
-        self.cuadruplos[end] = (self.cuadruplos[end][0], self.cuadruplos[end][1], None, len(self.cuadruplos))
+        if self.pila_saltos:
+            end = self.pila_saltos.pop()
+            self.cuadruplos[end] = (self.cuadruplos[end][0], self.cuadruplos[end][1], None, len(self.cuadruplos))
+        else:
+            self.errores.append("Error: pila_saltos está vacía en exitCondicion.")
 
     def enterE_c(self, ctx: PatitoParser.E_cContext):
-        # Generar el cuádruplo GOTO
+        # Generar el cuádruplo GOTO para saltar al final de la condición después del bloque 'sino'
         cuadruplo = ('GOTO', None, None, None)
         self.cuadruplos.append(cuadruplo)
         goto_index = len(self.cuadruplos) - 1
-        self.pila_saltos.append(goto_index)
 
-        # Ajustar el GOTOF previo para que apunte al inicio del bloque 'sino'
-        falso = self.pila_saltos.pop(-2)
+        # Sacar el índice del GOTOF previo y completar su salto al inicio del bloque 'sino'
+        falso = self.pila_saltos.pop()
         self.cuadruplos[falso] = (self.cuadruplos[falso][0], self.cuadruplos[falso][1], None, len(self.cuadruplos))
+
+        # Agregar el índice del GOTO a la pila de saltos para completarlo al final del 'sino'
+        self.pila_saltos.append(goto_index)
 
     def exitE_c(self, ctx: PatitoParser.E_cContext):
         # No es necesario hacer nada aquí
@@ -361,12 +375,13 @@ class PatitoCustomListener(PatitoListener):
     def exitParam_imp(self, ctx: PatitoParser.Param_impContext):
         if ctx.expresion():
             resultado = self.pila_operandos.pop()
-            self.pila_tipos.pop()
+            tipo = self.pila_tipos.pop()
             self.lista_param_impresion.insert(0, resultado)  # Insertar al inicio para mantener el orden
         elif ctx.LETRERO():
-            cadena = ctx.LETRERO().getText()
-            self.lista_param_impresion.insert(0, cadena)
-        # No es necesario manejar recursión aquí
+            valor = ctx.LETRERO().getText()
+            tipo = 'cadena'
+            address = self.get_constant_address(valor, tipo)
+            self.lista_param_impresion.insert(0, address)
 
     def obtener_tipo_variable(self, nombre_var):
         if nombre_var in self.tabla_variables_actual:
@@ -375,6 +390,21 @@ class PatitoCustomListener(PatitoListener):
             return self.tabla_variables_global[nombre_var]['tipo']
         else:
             return None
+
+    def obtener_tipo_direccion_variable(self, nombre_var):
+        if nombre_var in self.tabla_variables_actual:
+            var_info = self.tabla_variables_actual[nombre_var]
+            print(
+                f"Variable '{nombre_var}' encontrada en ámbito actual: Tipo={var_info['tipo']}, Dirección={var_info['direccion']}")
+            return var_info['tipo'], var_info['direccion']
+        elif nombre_var in self.tabla_variables_global:
+            var_info = self.tabla_variables_global[nombre_var]
+            print(
+                f"Variable '{nombre_var}' encontrada en ámbito global: Tipo={var_info['tipo']}, Dirección={var_info['direccion']}")
+            return var_info['tipo'], var_info['direccion']
+        else:
+            print(f"Variable '{nombre_var}' no declarada.")
+            return None, None
 
     def inicializar_cubo_semantico(self):
         tipos = ['entero', 'flotante']
@@ -419,3 +449,11 @@ class PatitoCustomListener(PatitoListener):
                 return True
             parent_ctx = parent_ctx.parentCtx
         return False
+
+    def get_constant_address(self, valor, tipo):
+        if valor not in self.constant_table:
+            address = self.virtual_memory.get_address('constante', tipo)
+            self.constant_table[valor] = {'tipo': tipo, 'direccion': address}
+        else:
+            address = self.constant_table[valor]['direccion']
+        return address
