@@ -13,6 +13,7 @@ nula miFuncion(c: entero, a: entero) {
         escribe("El valor de c es: ", c);
     }
 };
+
 inicio{
     x = 10;
     y = 20;
