@@ -1,3 +1,6 @@
+> [!NOTE]  
+> En estos momentos me encuentro trabajando en la documentación del proyecto, por lo que esta sección se encuentra en construcción.
+
 # Documentación Compilador Patito
 
 ## Índice
