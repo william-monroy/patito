@@ -1,7 +1,8 @@
 grammar Patito;
 
 // Reglas de sintaxis
-programa: p v f 'inicio' cuerpo 'fin';
+programa: p v f inicio cuerpo 'fin';
+inicio: 'inicio';
 p: 'programa' ID END_STM;
 v: vars?;
 f: funcs*;

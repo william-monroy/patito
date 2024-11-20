@@ -10,25 +10,34 @@ class PatitoCustomListener(PatitoListener):
         self.tabla_variables_actual = self.tabla_variables_global
         self.funcion_actual = 'global'
         self.errores = []
+
         # Crear instancia de VirtualMemory
         self.virtual_memory = VirtualMemory()
+
         # Tabla de constantes
         self.constant_table = {}
+
         # Pila para manejar scopes
         self.pila_scopes = ['global']
+
         # Inicializar el cubo semántico
         self.cubo_semantico = self.inicializar_cubo_semantico()
+
         # Inicializar pilas para operandos, operadores y tipos
         self.pila_operandos = []
         self.pila_operadores = []
         self.pila_tipos = []
+
         # Inicializar contador de temporales
         self.contador_temporales = 0
+
         # Lista para almacenar los cuádruplos
-        self.cuadruplos = []
+        self.cuadruplos = [('GOTO', None, None, None)]  # GOTO inicial
+
         # Pila para manejar saltos
         self.pila_saltos = []
         self.in_condition = False
+
         # Listas para manejar parámetros en impresión y llamadas
         self.lista_param_impresion = []
         self.pila_parametros = []
@@ -44,9 +53,24 @@ class PatitoCustomListener(PatitoListener):
         }
 
     def exitPrograma(self, ctx: PatitoParser.ProgramaContext):
+        # Identificar el índice de MAIN_START para actualizar el GOTO inicial
+        indice_inicio_programa = None
+        for idx, cuad in enumerate(self.cuadruplos):
+            if cuad[0] == 'MAIN_START':
+                indice_inicio_programa = idx
+                break
+        if indice_inicio_programa is not None:
+            self.cuadruplos[0] = ('GOTO', None, None, indice_inicio_programa)
+        else:
+            self.errores.append("Error: No se encontró el inicio del programa principal.")
+
         # Agregar el cuádruplo END al final del programa
         cuadruplo = ('END', None, None, None)
         self.cuadruplos.append(cuadruplo)
+
+    def enterInicio(self, ctx: PatitoParser.InicioContext):
+        # Marcar el inicio del programa principal
+        self.cuadruplos.append(('MAIN_START', None, None, None))
 
     # Entrar a la declaración de variables
     def enterD(self, ctx: PatitoParser.DContext):
@@ -71,62 +95,42 @@ class PatitoCustomListener(PatitoListener):
     # Entrar a la declaración de una función
     def enterFuncs(self, ctx: PatitoParser.FuncsContext):
         nombre_funcion = ctx.ID().getText()
-        tipo_retorno = ctx.getChild(0).getText()  # 'nula' o tipo de retorno
+        tipo_retorno = ctx.getChild(0).getText()
 
         if nombre_funcion in self.directorio_funciones:
             self.errores.append(f"Error: Función '{nombre_funcion}' ya declarada.")
         else:
-            # Manejar parámetros
             parametros = []
             if ctx.param():
                 param_list = ctx.param().getText().split(',')
                 for param_pair in param_list:
                     if ':' in param_pair:
-                        nombre_param, tipo_param = param_pair.strip().split(':')
-                        nombre_param = nombre_param.strip()
-                        tipo_param = tipo_param.strip()
+                        nombre_param, tipo_param = map(str.strip, param_pair.split(':'))
                         parametros.append({'nombre': nombre_param, 'tipo': tipo_param})
-                    else:
-                        continue  # Manejar caso de parámetros vacíos
 
-            # Crear una nueva tabla de variables para la función
             self.tabla_variables_actual = {}
-            # Agregar parámetros a la tabla de variables de la función
             for param in parametros:
-                nombre_param = param['nombre']
-                tipo_param = param['tipo']
-                if nombre_param in self.tabla_variables_actual:
-                    self.errores.append(
-                        f"Error: Parámetro '{nombre_param}' duplicado en función '{nombre_funcion}'.")
-                else:
-                    # Asignar dirección virtual al parámetro
-                    address = self.virtual_memory.get_address('local', tipo_param)
-                    self.tabla_variables_actual[nombre_param] = {'tipo': tipo_param, 'direccion': address}
+                nombre_param, tipo_param = param['nombre'], param['tipo']
+                address = self.virtual_memory.get_address('local', tipo_param)
+                self.tabla_variables_actual[nombre_param] = {'tipo': tipo_param, 'direccion': address}
 
-            # Agregar la función al directorio de funciones
             self.directorio_funciones[nombre_funcion] = {
                 'tipo_retorno': tipo_retorno,
                 'parametros': parametros,
                 'tabla_variables': self.tabla_variables_actual,
-                'cuadruplos_inicio': len(self.cuadruplos)  # Cuádruplo de inicio de la función
+                'cuadruplos_inicio': len(self.cuadruplos)
             }
-            # Actualizar el scope actual
             self.pila_scopes.append(nombre_funcion)
             self.funcion_actual = nombre_funcion
 
-    # Salir de la declaración de una función
     def exitFuncs(self, ctx: PatitoParser.FuncsContext):
-        # Restaurar el scope anterior
         self.pila_scopes.pop()
         self.funcion_actual = self.pila_scopes[-1]
-        if self.funcion_actual == 'global':
-            self.tabla_variables_actual = self.tabla_variables_global
-        else:
-            self.tabla_variables_actual = self.directorio_funciones[self.funcion_actual]['tabla_variables']
-        # Agregar un cuádruplo de retorno al final de la función
-        cuadruplo = ('ENDFUNC', None, None, None)
-        self.cuadruplos.append(cuadruplo)
-        # Reiniciar la memoria local
+        self.tabla_variables_actual = (
+            self.tabla_variables_global if self.funcion_actual == 'global' else
+            self.directorio_funciones[self.funcion_actual]['tabla_variables']
+        )
+        self.cuadruplos.append(('ENDFUNC', None, None, None))
         self.virtual_memory.reset_local_memory()
 
     # Entrar a una asignación
@@ -149,30 +153,48 @@ class PatitoCustomListener(PatitoListener):
 
     def exitLlamada(self, ctx: PatitoParser.LlamadaContext):
         nombre_funcion = ctx.ID().getText()
-        funcion_info = self.directorio_funciones[nombre_funcion]
-        num_params = len(funcion_info['parametros'])
-        if len(self.pila_parametros) != num_params:
-            self.errores.append(f"Error: Número incorrecto de parámetros al llamar a '{nombre_funcion}'.")
-        else:
-            # Verificar tipos de parámetros y generar cuádruplos
-            for i, (param, tipo_param) in enumerate(self.pila_parametros):
-                expected_tipo = funcion_info['parametros'][i]['tipo']
-                if tipo_param != expected_tipo:
+        funcion_info = self.directorio_funciones.get(nombre_funcion)
+        if funcion_info:
+            parametros = funcion_info['parametros']
+            num_params = len(parametros)
+            if len(self.pila_parametros) != num_params:
+                self.errores.append(
+                    f"Error: Número incorrecto de parámetros en la llamada a la función '{nombre_funcion}'.")
+                return
+            # Generar cuádruplo ERA
+            cuadruplo = ('ERA', nombre_funcion, None, None)
+            self.cuadruplos.append(cuadruplo)
+            # Generar cuádruplos PARAM
+            for i in range(num_params):
+                arg_value, arg_type = self.pila_parametros[i]
+                param_name = parametros[i]['nombre']
+                param_type = parametros[i]['tipo']
+                if arg_type != param_type and not (arg_type == 'entero' and param_type == 'flotante'):
                     self.errores.append(
-                        f"Error: Tipo incorrecto para el parámetro {i + 1} al llamar a '{nombre_funcion}'. Se esperaba '{expected_tipo}' pero se obtuvo '{tipo_param}'.")
-                cuadruplo = ('PARAM', param, None, f'param{i}')
+                        f"Error: Tipo de parámetro incorrecto en la llamada a la función '{nombre_funcion}'. Esperado '{param_type}', recibido '{arg_type}'.")
+                    return
+                # Obtener la dirección de la variable del parámetro en la función
+                param_address = funcion_info['tabla_variables'][param_name]['direccion']
+                # Generar cuádruplo PARAM
+                cuadruplo = ('PARAM', arg_value, None, param_address)
                 self.cuadruplos.append(cuadruplo)
-            # Generar cuádruplo de llamada
+            # Generar cuádruplo GOSUB apuntando al inicio de la función
             cuadruplo = ('GOSUB', nombre_funcion, None, funcion_info['cuadruplos_inicio'])
             self.cuadruplos.append(cuadruplo)
+            # Limpiar la pila de parámetros
+            self.pila_parametros = []
+        else:
+            self.errores.append(f"Error: Función '{nombre_funcion}' no definida.")
 
     def exitE_l(self, ctx: PatitoParser.E_lContext):
         expresiones = ctx.expresion()
         if expresiones:
+            parametros_temporales = []
             for _ in expresiones:
                 resultado = self.pila_operandos.pop()
                 tipo = self.pila_tipos.pop()
-                self.pila_parametros.insert(0, (resultado, tipo))
+                parametros_temporales.insert(0, (resultado, tipo))
+            self.pila_parametros.extend(parametros_temporales)
 
     # Entrar a una variable usada (por ejemplo, en expresiones)
     def enterFactor(self, ctx: PatitoParser.FactorContext):
