@@ -4,11 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="3526c6b3-d007-4b23-827e-401542c4849b" name="Changes" comment="docs: Updated documentation">
-      <change afterPath="$PROJECT_DIR$/virtual_machine.py" afterDir="false" />
+    <list default="true" id="3526c6b3-d007-4b23-827e-401542c4849b" name="Changes" comment="feat: Implementeed virtual-machine">
+      <change afterPath="$PROJECT_DIR$/fibonacci.patito" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Patito.g4" beforeDir="false" afterPath="$PROJECT_DIR$/Patito.g4" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/PatitoCustomListener.py" beforeDir="false" afterPath="$PROJECT_DIR$/PatitoCustomListener.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -126,7 +125,7 @@
       <workItem from="1730758410870" duration="1714000" />
       <workItem from="1730819649603" duration="4271000" />
       <workItem from="1730838950412" duration="12216000" />
-      <workItem from="1732050925163" duration="4976000" />
+      <workItem from="1732050925163" duration="31129000" />
     </task>
     <task id="LOCAL-00001" summary="Initialize project">
       <option name="closed" value="true" />
@@ -184,7 +183,15 @@
       <option name="project" value="LOCAL" />
       <updated>1731629873851</updated>
     </task>
-    <option name="localTasksCounter" value="8" />
+    <task id="LOCAL-00008" summary="feat: Implementeed virtual-machine">
+      <option name="closed" value="true" />
+      <created>1732065588213</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1732065588213</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -198,9 +205,10 @@
     <MESSAGE value="feat: Implemented virtual-memory" />
     <MESSAGE value="test: Implemented automate test cases" />
     <MESSAGE value="docs: Updated documentation" />
-    <option name="LAST_COMMIT_MESSAGE" value="docs: Updated documentation" />
+    <MESSAGE value="feat: Implementeed virtual-machine" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: Implementeed virtual-machine" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/patito$main_patito.coverage" NAME="main_patito Coverage Results" MODIFIED="1731453357994" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/patito$main_patito.coverage" NAME="main_patito Coverage Results" MODIFIED="1732201992757" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>

@@ -72,3 +72,4 @@ END_STM: ';' ;
 LETRERO : '"' ~["\r\n]* '"' ;
 NUMERO: [0-9]+ ('.' [0-9]+)?;
 WS: [ \t\r\n]+ -> skip ;
+COMMENT: '//' ~[\r\n]* -> skip;

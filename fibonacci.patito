@@ -1,0 +1,17 @@
+programa fibonacci;
+vars
+    n, a, b, temp: entero;
+inicio
+{
+    n = 15;
+    a = 0;
+    b = 1;
+    mientras (n > 0) haz {
+        escribe(a);
+        temp = a + b;
+        a = b;
+        b = temp;
+        n = n - 1;
+    };
+}
+fin
